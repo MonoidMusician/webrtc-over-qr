@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+  </head>
+  <body>
+    <ol id="events"></ol>
+    <textarea id="message"></textarea>
+    <div><button id="send">Send</button></div>
+    <script>
+      delayS = 1;
+      function processOffer(offer) {
+        return offer;
+      }
+      function processAnswer(answer, offer) {
+        return answer;
+      }
+
+      function show(e) {
+        const li = document.createElement('li');
+        li.style = `white-space: pre`;
+        li.textContent = e;
+        document.getElementById('events').appendChild(li);
+      }
+
+      // Start creating a peer connection
+      rtc = new RTCPeerConnection();
+      // The host creates a data channel immediately, so it is in the offer
+      dc = rtc.createDataChannel('test', { reliable: true });
+      dc.onopen = ev => {
+        console.log(ev);
+        show(ev);
+      };
+      dc.onmessage = ev => {
+        console.log(ev);
+        show(ev.data);
+      };
+      // Create an offer
+      offer = undefined;
+      rtc.createOffer().then(async desc => {
+        // We need to set it locally
+        rtc.setLocalDescription(desc);
+        // Bypass trickle ICE
+        await new Promise(resolve => {
+          rtc.onicegatheringstatechange = _ =>
+            rtc.iceGatheringState === 'complete' && resolve();
+        });
+        // It will now be updated with ICE candidates
+        offer = rtc.localDescription.sdp;
+        show(offer);
+        // Wait a while, to simulate latency
+        await new Promise(resolve => setTimeout(resolve, delayS*1000));
+        // Pass the offer to the guest
+        fetch('rtc/offer', {
+          method: 'POST',
+          body: processOffer(offer),
+        });
+      }, (err) => {console.error(err);show(err)});
+
+      // Wait for the answer from the guest
+      es = new EventSource('rtc/answer');
+      es.onmessage = (ev) => {
+        answer = processAnswer(ev.data, offer);
+        show(answer);
+        // Apply the answer
+        rtc.setRemoteDescription(new RTCSessionDescription({
+          type: 'answer', sdp: answer
+        }));
+      };
+      // Send messages
+      document.getElementById('send').addEventListener('click', () => {
+        dc.send(document.getElementById('message').value);
+      });
+    </script>
+  </body>
+</html>
