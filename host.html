@@ -8,7 +8,7 @@
     <textarea id="message"></textarea>
     <div><button id="send">Send</button></div>
     <script>
-      delayS = 1;
+      delayS = 2;
       function processOffer(offer) {
         return offer;
       }
@@ -25,6 +25,23 @@
 
       // Start creating a peer connection
       rtc = new RTCPeerConnection();
+      diffing_rtc = diffing(rtc);
+      for (let k of Object.keys(RTCPeerConnection.prototype)) {
+        if (!k.startsWith("on")) continue;
+        rtc.addEventListener(k.substring(2), e => console.log(e.timeStamp, e.type, diffing_rtc()));
+      }
+      ii = 0;
+      rtc.oniceconnectionstatechange = async (e) => {
+        //if (rtc.iceConnectionState === "checking") {
+          const jj = ii++;
+          const st = rtc.iceConnectionState;
+          console.log(st + '.'+jj, Date.now(), e);
+          const stats = [...(await rtc.getStats()).values()];
+          console.log(st + '.'+jj, Date.now(), stats);
+          const wemote = stats.find(s => s.type === 'remote-candidate');
+          console.log(wemote, wemote.usernameFragment);
+        //}
+      };
       // The host creates a data channel immediately, so it is in the offer
       dc = rtc.createDataChannel('test', { reliable: true });
       dc.onopen = ev => {
@@ -71,6 +88,33 @@
       document.getElementById('send').addEventListener('click', () => {
         dc.send(document.getElementById('message').value);
       });
+
+      // Debug helpers
+      function snapshot(o) {
+        const r = {};
+        for (const k of Object.keys(Object.getPrototypeOf(o)).concat(Object.keys(o))) {
+          const v = o[k];
+          if (typeof v !== 'function') r[k] = v;
+          if (v instanceof RTCSessionDescription) r[k] = v.sdp;
+        }
+        return r;
+      }
+      function diff(last,o) {
+        const r = {};
+        for (const [k,v] of Object.entries(o)) {
+          if (last[k] !== v) r[k] = v;
+        }
+        return r;
+      }
+      function diffing(o) {
+        last = {};
+        return () => {
+          next = snapshot(rtc);
+          delta = diff(last, next);
+          last = next;
+          return delta;
+        };
+      }
     </script>
   </body>
 </html>
