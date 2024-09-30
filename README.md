@@ -1,6 +1,8 @@
-Attempting to see if browsers can be tempted into bootstrapping a WebRTC chat app over a `data:` QR code.
+Attempting to see if browsers can be tempted into bootstrapping a WebRTC text chat app over a `data:` QR code.
 
 It appears … the answer is kind of yes, sorta?!
+
+Note: this can only be a text chat app, as access to camera and microphone is prohibited outside of HTTPS connections (which a `data:` URI certainly is not)
 
 ## Run
 
