@@ -159,7 +159,7 @@
           function HACK(sdp) {
             return sdp
               .replace(/(a=ice-ufrag):[^\n]+/u, '$1:'+btoa(/^a=fingerprint:sha-256 (.+)$/m.exec(sdp)[1]))
-              .replace(/(a=ice-pwd):[^\n]+/u, ${JSON.stringify('$1:'+AGREED_UPON_PASSWORD)});
+              .replace(/(a=ice-pwd):[^\n]+/u, '$1:'+${JSON.stringify(AGREED_UPON_PASSWORD)});
           }
 
           // Start creating a peer connection
