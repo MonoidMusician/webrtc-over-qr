@@ -38,8 +38,8 @@
           console.log(st + '.'+jj, Date.now(), e);
           const stats = [...(await rtc.getStats()).values()];
           console.log(st + '.'+jj, Date.now(), stats);
-          const wemote = stats.find(s => s.type === 'remote-candidate');
-          console.log(wemote, wemote.usernameFragment);
+          const remote = stats.find(s => s.type === 'remote-candidate');
+          console.log(remote, remote.usernameFragment);
         //}
       };
       // The host creates a data channel immediately, so it is in the offer
