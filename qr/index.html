@@ -82,7 +82,7 @@
       dc = rtc.createDataChannel('test', { reliable: true });
       dc.onopen = ev => {
         console.log(ev);
-        dc.send(`document.body.innerHTML = '<h1>hiya!</h1>'`);
+        dc.send(`document.body.innerHTML = '<h1>hiyá🏳️‍⚧️!</h1>'`);
         dc.send(`document.head.innerHTML += '<meta name="viewport" content="width=device-width, initial-scale=1.0">'`);
       };
       dc.onmessage = ev => {

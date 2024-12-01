@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.." || exit 1
+
+./.venv/bin/hypercorn \
+  --reload \
+  --bind 0.0.0.0:37393 \
+  --certfile cert/localhost.crt \
+  --keyfile cert/localhost.key \
+  --websocket-ping-interval 20 \
+  --graceful-timeout 5 \
+  --worker-class uvloop \
+  app

@@ -203,7 +203,11 @@ Verity = Ve = {};
   };
   function createChildOf(parent, props, tag, ...children) {
     if (typeof props === 'string' || typeof props === 'number' || props instanceof String || props instanceof Number) {
-      return document.createTextNode(String(props));
+      if (!tag) {
+        return document.createTextNode(String(props));
+      }
+      children = [String(props), ...children];
+      props = {};
     }
     if (Array.isArray(props)) {
       return SPECIALS['$children'](document.createDocumentFragment(), props);
