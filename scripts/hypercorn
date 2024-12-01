@@ -1,13 +1,31 @@
 #!/usr/bin/env bash
+{
 set -euo pipefail
-cd "$(dirname "$0")/.." || exit 1
+cd "$(dirname "$0")/.."
 
-./.venv/bin/hypercorn \
-  --reload \
-  --bind 0.0.0.0:37393 \
-  --certfile cert/localhost.crt \
-  --keyfile cert/localhost.key \
-  --websocket-ping-interval 20 \
-  --graceful-timeout 5 \
-  --worker-class uvloop \
-  app
+if [[ ! -d .venv ]]; then
+  (set -x; python3 -m venv .venv && .venv/bin/pip3 install -r requirements.txt)
+fi
+
+if [[ -f cert/localhost.crt && -f cert/localhost.key ]]; then
+  (set -x; .venv/bin/hypercorn \
+    --reload \
+    --bind 0.0.0.0:37393 \
+    --certfile cert/localhost.crt \
+    --keyfile cert/localhost.key \
+    --websocket-ping-interval 20 \
+    --graceful-timeout 5 \
+    --worker-class uvloop \
+    app
+  )
+else
+  (set -x; .venv/bin/hypercorn \
+    --reload \
+    --bind 0.0.0.0:37393 \
+    --websocket-ping-interval 20 \
+    --graceful-timeout 5 \
+    --worker-class uvloop \
+    app
+  )
+fi
+}; exit
