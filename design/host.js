@@ -35,35 +35,67 @@ rtc.createOffer().then(async desc => {
 // Offer SDP before we have the right Answer SDP and, most importantly,
 // before we have the fingerprint for its certificate to trust it
 rtc.oniceconnectionstatechange = async (e) => {
-  if (rtc.iceConnectionState === "checking") {
+  if (rtc.iceConnectionState === "checking" && !rtc.remoteDescription) {
     const stats = [...(await rtc.getStats()).values()];
     const remote = stats.find(s => s.type === 'remote-candidate');
-    // console.log(remote, btoa(remote.usernameFragment));
-    fingerprint = atob(remote.usernameFragment);
-    // Most of this Answer SDP is just formality
-    // e.g. the `c=` line is literally ignored but must be present
-    // I believe the ice-{ufrag,pwd} is enough to identify which remote
-    // we are talking about, given that it has attempted to connect
-    // already (that is how we got here after all)
-    await rtc.setRemoteDescription({ type: 'answer', sdp: Ve.dedent`
-      v=0
-      o=- 1 2 IN IP4 127.0.0.1
-      s=-
-      t=0 0
-      a=group:BUNDLE 0
-      a=extmap-allow-mixed
-      a=msid-semantic: WMS
-      m=application 9 UDP/DTLS/SCTP webrtc-datachannel
-      c=IN IP4 0.0.0.0
-      a=ice-ufrag:${remote.usernameFragment}
-      a=ice-pwd:${AGREED_UPON_PASSWORD}
-      a=ice-options:trickle
-      a=fingerprint:sha-256 ${fingerprint}
-      a=setup:active
-      a=mid:0
-      a=sctp-port:5000
-      a=max-message-size:262144
-
-    ` });
+    await setUFrag(remote.usernameFragment);
   }
 };
+
+if (document.getElementById("compose")) {
+  const compose = document.getElementById("compose");
+  const fn0 = async ev => {
+    if (ev.key === 'Enter') {
+      if (compose.value.trim()) {
+        await setUFrag(compose.value);
+        compose.value = "";
+        compose.removeEventListener("keyup", fn0);
+        compose.removeEventListener("input", fn1);
+      }
+    }
+  };
+  const fn1 = async ev => {
+    if (compose.value.match(/[A-Za-z0-9+\/]{43}=/)) {
+      await setUFrag(compose.value);
+      compose.value = "";
+      compose.removeEventListener("keyup", fn0);
+      compose.removeEventListener("input", fn1);
+    }
+  };
+  compose.addEventListener("keyup", fn0);
+  compose.addEventListener("input", fn1);
+}
+function setUFrag(ufrag) {
+  return rtc.setRemoteDescription({ type: 'answer', sdp: fromUFrag(ufrag) });
+}
+function fromUFrag(usernameFragment) {
+  var fingerprint = Array.from(
+    atob(usernameFragment),
+    x => x.codePointAt(0).toString(16).padStart(2,"0")
+  ).join(":").toUpperCase();
+  // Most of this Answer SDP is just formality
+  // e.g. the `c=` line is literally ignored but must be present
+  // I believe the ice-{ufrag,pwd} is enough to identify which remote
+  // we are talking about, given that it has attempted to connect
+  // already (that is how we got here after all)
+  return Ve.dedent`
+    v=0
+    o=- 1 2 IN IP4 127.0.0.1
+    s=-
+    t=0 0
+    a=group:BUNDLE 0
+    a=extmap-allow-mixed
+    a=msid-semantic: WMS
+    m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+    c=IN IP4 0.0.0.0
+    a=ice-ufrag:${usernameFragment}
+    a=ice-pwd:${AGREED_UPON_PASSWORD}
+    a=ice-options:trickle
+    a=fingerprint:sha-256 ${fingerprint}
+    a=setup:active
+    a=mid:0
+    a=sctp-port:5000
+    a=max-message-size:262144
+
+  `
+}

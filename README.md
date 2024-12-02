@@ -58,6 +58,7 @@ right now it would have to be generated for each connection.
 
 - [WebRTC: ICE failed on small timeout for answer transmission (5s)](https://bugzilla.mozilla.org/show_bug.cgi?id=1647289)
   - `media.peerconnection.ice.trickle_grace_period` in `about:config` (default: 5000(ms))
+- [WebRTC: Real-Time Communication in Browsers: §4.4.1.4 Set the session description](https://w3c.github.io/webrtc-pc/#set-the-session-description) (maybe relevant to Firefox behavior?)
 
 ## Design
 

@@ -3,8 +3,11 @@ document.body.textContent = offer;
 window.role = 'guest';
 
 function HACK(sdp) {
+  hex = /^a=fingerprint:sha-256 (.+)$/m.exec(sdp)[1];
+  ufrag = btoa(String.fromCodePoint(...hex.split(":").map(x=>Number.parseInt(x,16))));
+  document.body.textContent = ufrag;
   return sdp
-    .replace(/(a=ice-ufrag):[^\n]+/u, '$1:'+btoa(/^a=fingerprint:sha-256 (.+)$/m.exec(sdp)[1]))
+    .replace(/(a=ice-ufrag):[^\n]+/u, '$1:'+ufrag)
     .replace(/(a=ice-pwd):[^\n]+/u, '$1:'+$PASSWORD);
 }
 

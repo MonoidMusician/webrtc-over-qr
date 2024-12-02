@@ -45,7 +45,7 @@ body > #main {
   display: flex;
   flex-direction: row;
   column-gap: 0.25em;
-  &:has(> input:focus) {
+  &:has(> input#compose:focus) {
     border-color: var(--ui-focus);
   }
   input {
