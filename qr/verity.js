@@ -1,5 +1,13 @@
-Verity = Ve = {};
-(function Verity() {
+try {
+  Verity = {};
+  if (typeof globalThis !== 'undefined' && globalThis.Ve && globalThis.Ve.onload) {
+    Verity.onload = globalThis.Ve.onload;
+  }
+  Ve = Verity;
+} catch {
+  Verity = Ve = {};
+}
+(function Veritification() {
   Ve.noop = ()=>{};
 
   function pythonic(fn) {
@@ -572,4 +580,5 @@ Verity = Ve = {};
   //////////////////////////////////////////////////////////////////////////////
 
   return this;
-}).call(Ve);
+}).call(Verity);
+try {Ve.onload(Ve)} catch{}

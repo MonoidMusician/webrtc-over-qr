@@ -7,9 +7,9 @@
     <link class="stage0" rel="stylesheet" type="text/css" href="stage0.css" />
     <script class="stage1" src="stage1.js"></script>
     <script src="utils.js"></script>
-    <script src="verity.js"></script>
     <script src="debug.js"></script>
     <script src="scroll.js"></script>
+    <script src="verity.js"></script>
     <link rel="stylesheet" type="text/css" href="index.css" />
     <script src="app.js"></script>
     <script class="stage2" src="stage2.js"></script>
@@ -46,6 +46,10 @@
         <span class="status" id="loading">Loading …</span>
       </div>
       <div id="controls">
+        <label for="file_upload"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+          <path style="fill:currentColor;stroke:none" d="M16 3a3 3 0 0 0-3 3v7H6a3 3 0 0 0 0 6h7v7a3 3 0 0 0 6 0v-7h7a3 3 0 0 0 0-6h-7V6a3 3 0 0 0-3-3z"/>
+        </svg></label>
+        <input type="file" id="file_upload" multiple />
         <input id="compose" />
       </div>
     </div>

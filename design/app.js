@@ -1,5 +1,5 @@
 function app() {
-  var { compose, chat_content, chat_spacer } = Ve.ById;
+  var { compose, chat_content, chat_spacer, file_upload } = Ve.ById;
   compose.placeholder = "Write a message to your bestie!";
 
   var scrollManager = makeScrollManagerFor(chat_content, chat_spacer);
@@ -10,24 +10,29 @@ function app() {
       compose.value = '';
     }
   });
-  dc.onmessage = (ev) => {
-    var data = JSON.parse(ev.data);
+  defragmentDC(dc, (str, ev) => {
+    if (ev.data !== str) console.log(ev);
+    var data = JSON.parse(str);
     if (data.type === 'message') {
       receiveMessage(data);
     } else {
-      console.warn('Unknown message type', data.type || data);
+      console.warn('Unknown message type', data.type || data, typeof data);
     }
-  };
+  });
   function sendMessage(content) {
     if (!content) return;
-    dc.send(JSON.stringify({ type: 'message', content }));
+    fragmentDC(dc, JSON.stringify({ type: 'message', content }));
     scrollManager.adding(() => {
       return addMessage(content, 'echo');
     });
   }
   function receiveMessage(data) {
     scrollManager.adding.see_top(() => {
-      return addMessage(data.content, 'peer');
+      if (data.image) {
+        return addMessage(Ve.HTML.img({ src: data.image.src }), 'peer', 'image');
+      } else {
+        return addMessage(data.content, 'peer');
+      }
     });
   }
   function addMessage(content, ...classes) {
@@ -40,4 +45,14 @@ function app() {
   Ve.ById.loading.removeSelf();
   addMessage('Peer connected', 'status');
   setTimeout(() => sendMessage(role), 100);
+
+  Ve.on.change(file_upload, async () => {
+    const fileSrcs = await Promise.all(Array.from(file_upload.files).map(readFile));
+    scrollManager.adding(() => fileSrcs.map(src =>
+      addMessage(Ve.HTML.img({ src: src }), 'image', 'echo')
+    ));
+    for (const src of fileSrcs) {
+      fragmentDC(dc, JSON.stringify({ type: 'message', image: { src } }));
+    }
+  });
 }

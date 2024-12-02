@@ -9,8 +9,16 @@ function makeScrollManagerFor(chat_content, chat_spacer) {
       var added = addContent();
 
       var visibleHeight = chat_content.getBoundingClientRect().height;
-      var msgHeight = added.getBoundingClientRect().height;
-      var target = chat_content.scrollHeight - visibleHeight;//Math.max(visibleHeight, msgHeight);
+      var target = chat_content.scrollHeight - visibleHeight; // max scroll
+      if (see === 'top') {
+        if (added instanceof Node) {
+          added = [added];
+        }
+        for (let node of added) {
+          var top = node.getBoundingClientRect().top;
+          if (top < target) target = top;
+        }
+      }
       var instantTarget = Math.max(chat_content.scrollTop, target - visibleHeight);
 
       await manager.scrollTo(instantTarget, target);

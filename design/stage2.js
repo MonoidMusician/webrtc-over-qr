@@ -43,7 +43,7 @@ if (role === 'guest') {
         insertion.appendChild(element);
         insertion = element;
       } else {
-        let element = document.createElement(request.tag);
+        let element = document.createElementNS(request.ns, request.tag);
         for (let [name, value] of Object.entries(request.attrs)) {
           element.setAttribute(name, value);
         }
@@ -63,7 +63,7 @@ if (role === 'guest') {
     async function visit(el) {
       if (isEphemeral(el)) return;
       let tag = el.tagName.toLowerCase();
-      let msg = { stage: current, type: 'element', tag };
+      let msg = { stage: current, type: 'element', tag, ns: el.namespaceURI };
       msg.attrs = Object.fromEntries(Array.from(el.attributes).map(attr=>[attr.name,attr.value]));
       dc.send(JSON.stringify(msg));
       visitChildrenOf(el);

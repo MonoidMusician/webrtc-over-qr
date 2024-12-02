@@ -1,8 +1,8 @@
-function assert(condition, message="Assertion failed") {
-  if (!condition) throw new Error(message);
-}
-
 if (role === 'guest') {
+  function assert(condition, message="Assertion failed") {
+    if (!condition) throw new Error(message);
+  }
+
   (async function stage1guest() {
     const current = 'stage1';
     dc.send(JSON.stringify({ stage: current, type: 'ready' }));
@@ -21,7 +21,14 @@ if (role === 'guest') {
       let request = JSON.parse(ev.data);
       assert(request.stage === current);
       if (request.type === 'done') {
-        return dc.send(JSON.stringify({ stage: current, type: 'done' }));
+        var done = () => dc.send(JSON.stringify({ stage: current, type: 'done' }));
+        // A bit hacky, but, yeah, need to wait for it to load
+        // since `script.onload` only captures, uh, downloading? parsing? idk.
+        if (!globalThis.Ve) {
+          globalThis.Ve = {onload:done};
+          return;
+        }
+        return done();
       }
       assert(request.type === 'element');
       if (request.tag === 'script') {
