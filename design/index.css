@@ -1,20 +1,37 @@
 :root {
   font-family: sans-serif;
   word-break: break-word;
-  --hue: 306;
   /* adapted from https://github.com/holoviz/colorcet/blob/main/assets/CET/rainbow_bgyrm_35-85_c69_n256.csv */
   --rainbow: rgb(0,47,246), rgb(20,74,218), rgb(25,94,190), rgb(24,110,164), rgb(38,122,139), rgb(54,133,115), rgb(62,143,90), rgb(65,154,63), rgb(71,163,36), rgb(90,171,19), rgb(114,177,16), rgb(138,183,20), rgb(161,189,23), rgb(183,194,27), rgb(205,199,31), rgb(225,203,34), rgb(242,203,36), rgb(249,195,35), rgb(250,184,33), rgb(249,171,30), rgb(248,158,28), rgb(247,145,25), rgb(245,132,23), rgb(243,118,21), rgb(241,103,21), rgb(240,90,28), rgb(243,86,50), rgb(248,92,81), rgb(253,103,115), rgb(256,113,149), rgb(256,125,183), rgb(256,136,219);
+
+  /* Chosen hue */
+  --hue: 306;
+
+  /* Interactive elements */
   --ui-focus: rgb(227, 12, 48);
   --ui-defocus: rgb(122, 31, 179);
   --ui-stark: black;
   --ui-semi: 0.4;
   --ui-half: rgba(0,0,0,var(--ui-semi));
+
+  --bubble: lch(90 40 var(--hue));
   @media (prefers-color-scheme: dark) {
+    --link: rgb(137, 137, 255);
+    --link-visited: rgb(212, 124, 209);
     --ui-focus: rgb(198, 68, 89);
     --ui-defocus: rgb(135, 91, 163);
     --ui-stark: white;
     --ui-semi: 0.6;
     --ui-half: rgba(255,255,255,var(--ui-semi));
+
+    --bubble: lch(90 20 var(--hue) / 25%);
+
+    a[href] {
+      color: var(--link);
+      &:visited {
+        color: var(--link-visited);
+      }
+    }
   }
 }
 @media (prefers-color-scheme: dark) {
@@ -102,6 +119,7 @@ body > #main {
 #chat_content {
   display: flex;
   flex-direction: column;
+  container: chat_content / size;
   /* bug: https://stackoverflow.com/questions/36130760/use-justify-content-flex-end-and-to-have-vertical-scrollbar#37515194 */
   /* https://bugzilla.mozilla.org/show_bug.cgi?id=1042151 */
   /* https://bugs.chromium.org/p/chromium/issues/detail?id=411624 */
@@ -134,34 +152,45 @@ body > #main {
   border-radius: 0.8rem;
   padding: 0.2rem 0.7rem;
   font-size: 1.2rem;
-  background: lch(90 40 var(--hue));
-  @media (prefers-color-scheme: dark) {
-    background: rgba(255, 255, 255, .25);
-  }
+  background: var(--bubble);
   align-content: center;
+  box-sizing: border-box;
+  &.peer, &.echo {
+    width: fit-content;
+    max-width: calc(100cqw - 1em);
+  }
   &.peer {
     border-top-left-radius: 0;
-    width: fit-content;
-    max-width: 100%;
     align-self: flex-start;
     margin-right: 1em;
   }
   &.echo {
     border-top-right-radius: 0;
-    width: fit-content;
-    max-width: 100%;
     align-self: flex-end;
     margin-left: 1em;
   }
-  img {
+  img, video, pre {
     max-width: 100%;
-    max-height: 100vh;
+    max-height: 95cqh;
   }
-  &.image {
+  pre {
+    margin: 0;
+    overflow: auto;
+  }
+  &.media, &.color {
     display: flex; /* helps with extraneous line-height padding around <img> */
     padding: 0;
-    > img {
+    > img, > video {
       border-radius: inherit;
     }
+  }
+  > pre {
+    margin: 0;
+  }
+  > :first-child {
+    margin-top: 0;
+  }
+  > :last-child {
+    margin-bottom: 0;
   }
 }

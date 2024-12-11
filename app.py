@@ -25,9 +25,15 @@ async def watching(path):
     resolved = os.path.abspath(path)
     # print(path, resolved)
     watch_filter = lambda _, changed: changed==resolved or changed.startswith(resolved + "/")
-    async for i in watchfiles.awatch('.', path, recursive=path.endswith("/"), watch_filter=watch_filter):
-        # print(i)
-        await websocket.send("changed")
+    async for notifs in watchfiles.awatch('.', path, recursive=path.endswith("/"), watch_filter=watch_filter):
+        for notif in notifs:
+            change_type, changed = notif
+            if changed == resolved:
+                changed = "/" + os.path.normpath(path).rstrip("/")
+            elif changed.startswith(resolved + "/"):
+                changed = "/" + os.path.normpath(path).rstrip("/") + "/" + changed[len(resolved + "/"):]
+            else: changed = "/" # should not happen
+            await websocket.send(changed)
 
 # A proxy path to escalate permissions on `data:` so we can fetch files
 # (instead of baking them into the served HTML)

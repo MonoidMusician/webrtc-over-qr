@@ -60,6 +60,12 @@ right now it would have to be generated for each connection.
   - `media.peerconnection.ice.trickle_grace_period` in `about:config` (default: 5000(ms))
 - [WebRTC: Real-Time Communication in Browsers: §4.4.1.4 Set the session description](https://w3c.github.io/webrtc-pc/#set-the-session-description) (maybe relevant to Firefox behavior?)
 
+### Optimization
+- https://github.com/w3c/webrtc-pc/issues/1979
+- https://stackoverflow.com/questions/70975722/clear-webrtc-data-channel-queue
+- https://stackoverflow.com/questions/56327783/webrtc-datachannel-for-high-bandwidth-application
+- https://stackoverflow.com/questions/70446547/how-to-set-webrtc-data-channel-max-bitrate
+
 ## Design
 
 - QR code that contains the SDP Offer from the host, basic connection establishment, and enough to eval the first message

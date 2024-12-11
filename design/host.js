@@ -44,22 +44,26 @@ rtc.oniceconnectionstatechange = async (e) => {
 
 if (document.getElementById("compose")) {
   const compose = document.getElementById("compose");
+  const cleanup = () => {
+    compose.removeEventListener("keyup", fn0);
+    compose.removeEventListener("input", fn1);
+  };
   const fn0 = async ev => {
+    if (rtc.signalingState === 'stable') return cleanup();
     if (ev.key === 'Enter') {
       if (compose.value.trim()) {
         await setUFrag(compose.value);
         compose.value = "";
-        compose.removeEventListener("keyup", fn0);
-        compose.removeEventListener("input", fn1);
+        cleanup();
       }
     }
   };
   const fn1 = async ev => {
+    if (rtc.signalingState === 'stable') return cleanup();
     if (compose.value.match(/[A-Za-z0-9+\/]{43}=/)) {
       await setUFrag(compose.value);
       compose.value = "";
-      compose.removeEventListener("keyup", fn0);
-      compose.removeEventListener("input", fn1);
+      cleanup();
     }
   };
   compose.addEventListener("keyup", fn0);

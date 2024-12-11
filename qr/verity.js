@@ -143,6 +143,10 @@ try {
       style && Object.assign(e.style, typeof style === 'string' ? {style} : style),
     attrs: (e, attrs) =>
       attrs && Object.assign(e.attrs, attrs),
+    data: (e, attrs) =>
+      attrs && Object.assign(e.dataset, attrs),
+    dataset: (e, attrs) =>
+      attrs && Object.assign(e.dataset, attrs),
     $parent: (e, parent) =>
       parent && parent !== e.parentNode && parent.appendChild(e),
     $textContent: (e, textContent) =>
@@ -220,7 +224,13 @@ try {
     if (Array.isArray(props)) {
       return SPECIALS['$children'](document.createDocumentFragment(), props);
     }
-    if (props instanceof Node) return props;
+    if (props instanceof Node) {
+      if (!tag) {
+        return props;
+      }
+      children = [props];
+      props = {};
+    }
     props = props ? Object.assign({}, props) : {};
     if (children?.length) {
       props['$children'] = [props?.['$children'], children];

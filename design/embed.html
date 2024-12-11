@@ -12,6 +12,7 @@
     <script src="verity.js"></script>
     <link rel="stylesheet" type="text/css" href="index.css" />
     <script src="app.js"></script>
+    <script src="media.js"></script>
     <script class="stage2" src="stage2.js"></script>
     <style>
       html:not(:has(#hosted)) {
@@ -61,8 +62,19 @@
         var watching = ['/design/', '/app.py'].map(tgt => {
           const ws = new WebSocket('/watch' + tgt);
           ws.onmessage = e => {
-            watching.forEach(w => w.close());
-            setTimeout(() => location.reload(), tgt === '/app.py' ? 5000 : 100);
+            let url = e.data;
+            let found = false;
+            for (let link of document.querySelectorAll("link")) {
+              let pathname = URL.parse(link.href, location.href).pathname;
+              if (pathname === url) {
+                found = true;
+                link.href = pathname + '?' + Math.random();
+              }
+            }
+            if (!found) {
+              watching.forEach(w => w.close());
+              setTimeout(() => location.reload(), tgt === '/app.py' ? 5000 : 100);
+            }
           };
           return ws;
         });
