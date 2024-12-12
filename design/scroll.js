@@ -4,27 +4,38 @@ function makeScrollManagerFor(chat_content, chat_spacer) {
   var manager = {
     async adding(addContent, see='bottom') {
       var spacer = chat_spacer.getBoundingClientRect().height;
+      // if (role === 'host') console.log({ spacer });
       chat_spacer.style.height = `${spacer}px`;
 
       var added = addContent();
 
       var visibleHeight = chat_content.getBoundingClientRect().height;
       var target = chat_content.scrollHeight - visibleHeight; // max scroll
+      // if (role === 'host') console.log({ target });
       if (see === 'top') {
+        var chat_start = chat_content.scrollTop - chat_content.getBoundingClientRect().top;
         if (added instanceof Node) {
           added = [added];
         }
         for (let node of added) {
-          var top = node.getBoundingClientRect().top;
+          var top = chat_start + node.getBoundingClientRect().top;
+          // if (role === 'host') console.log({ top, node });
           if (top < target) target = top;
         }
       }
       var instantTarget = Math.max(chat_content.scrollTop, target - visibleHeight);
 
       await manager.scrollTo(instantTarget, target);
-      chat_spacer.style.removeProperty('height');
+      // if (role === 'host') console.log('got to', chat_content.scrollTop);
+      requestAnimationFrame(() => {
+        // this RAF prevents weird behavior?? (at least in Chrome)
+        // give the browser a chance to catch its breath i guess
+        chat_spacer.style.removeProperty('height');
+        // if (role === 'host') console.log('got to', chat_content.scrollTop);
+      });
     },
     scrollTo(instantTarget, target) {
+      // if (role === 'host') console.log(chat_content.scrollTop, instantTarget, target);
       if (chat_content.scrollTop < instantTarget && instantTarget < target-1) {
         chat_content.scrollTo({
           top: (instantTarget + target)/2,
