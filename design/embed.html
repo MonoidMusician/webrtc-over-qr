@@ -64,11 +64,13 @@
           ws.onmessage = e => {
             let url = e.data;
             let found = false;
-            for (let link of document.querySelectorAll("link")) {
-              let pathname = URL.parse(link.href, location.href).pathname;
-              if (pathname === url) {
-                found = true;
-                link.href = pathname + '?' + Math.random();
+            for (let doc of [document, document.querySelector('iframe#hosted').contentDocument]) {
+              for (let link of doc.querySelectorAll("link")) {
+                let pathname = URL.parse(link.href, location.href).pathname;
+                if (pathname === url) {
+                  found = true;
+                  link.href = pathname + '?' + Math.random();
+                }
               }
             }
             if (!found) {

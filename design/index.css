@@ -5,7 +5,7 @@
   --rainbow: rgb(0,47,246), rgb(20,74,218), rgb(25,94,190), rgb(24,110,164), rgb(38,122,139), rgb(54,133,115), rgb(62,143,90), rgb(65,154,63), rgb(71,163,36), rgb(90,171,19), rgb(114,177,16), rgb(138,183,20), rgb(161,189,23), rgb(183,194,27), rgb(205,199,31), rgb(225,203,34), rgb(242,203,36), rgb(249,195,35), rgb(250,184,33), rgb(249,171,30), rgb(248,158,28), rgb(247,145,25), rgb(245,132,23), rgb(243,118,21), rgb(241,103,21), rgb(240,90,28), rgb(243,86,50), rgb(248,92,81), rgb(253,103,115), rgb(256,113,149), rgb(256,125,183), rgb(256,136,219);
 
   /* Chosen hue */
-  --hue: 306;
+  --hue: 310;
 
   /* Interactive elements */
   --ui-focus: rgb(227, 12, 48);
@@ -15,6 +15,7 @@
   --ui-half: rgba(0,0,0,var(--ui-semi));
 
   --bubble: lch(90 40 var(--hue));
+  --bubble-half: lch(90 40 var(--hue) / 50%);
   @media (prefers-color-scheme: dark) {
     --link: rgb(137, 137, 255);
     --link-visited: rgb(212, 124, 209);
@@ -24,7 +25,8 @@
     --ui-semi: 0.6;
     --ui-half: rgba(255,255,255,var(--ui-semi));
 
-    --bubble: lch(90 20 var(--hue) / 25%);
+    --bubble: lch(50 30 var(--hue) / 25%);
+    --bubble-half: lch(50 30 var(--hue) / 15%);
 
     a[href] {
       color: var(--link);
@@ -155,9 +157,19 @@ body > #main {
   background: var(--bubble);
   align-content: center;
   box-sizing: border-box;
+  display: block;
+  &.status {
+    justify-content: center;
+  }
   &.peer, &.echo {
     width: fit-content;
     max-width: calc(100cqw - 1em);
+    &.full-width {
+      width: calc(100cqw - 1em);
+    }
+  }
+  &.command {
+    background: var(--bubble-half);
   }
   &.peer {
     border-top-left-radius: 0;
@@ -193,4 +205,35 @@ body > #main {
   > :last-child {
     margin-bottom: 0;
   }
+  &.shared-message {
+    display: flex;
+    flex-direction: row;
+    max-width: 100%;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    textarea {
+      background: none;
+      color: inherit;
+      border-radius: inherit;
+      border: none;
+      outline: none;
+      padding: 0.7rem 0.7rem;
+    }
+    > .shared-item {
+      flex: 1;
+    }
+    > .shared-sep {
+      flex: 0 0 0;
+      border-left: 1px solid var(--ui-half);
+      margin: 0.2em 0.5em;
+    }
+  }
+}
+
+dt {
+  font-weight: bold;
+}
+dd {
+  margin-inline-start: 4ch;
 }

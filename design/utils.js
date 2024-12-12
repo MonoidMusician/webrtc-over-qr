@@ -195,3 +195,8 @@ function cssVars(vars) {
     }
   }
 }
+
+// 52 bits of randomness
+function newID() {
+  return String(Math.random()).substring(2);
+}

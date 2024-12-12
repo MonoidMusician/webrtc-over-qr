@@ -81,7 +81,7 @@ if (role === 'guest') {
     await visitChildrenOf(document.body);
     dc.send(JSON.stringify({ stage: current, type: 'done' }));
     var ev = await Ve.once.message(dc);
-    console.log('done', ev);
+    // console.log('done', ev);
     app();
   };
 } else {

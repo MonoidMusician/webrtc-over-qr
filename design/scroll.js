@@ -9,11 +9,13 @@ function makeScrollManagerFor(chat_content, chat_spacer) {
 
       var added = addContent();
 
-      var visibleHeight = chat_content.getBoundingClientRect().height;
+      await { then(cb) {requestAnimationFrame(cb)} };
+      var chatBB = chat_content.getBoundingClientRect();
+      var visibleHeight = chatBB.height;
       var target = chat_content.scrollHeight - visibleHeight; // max scroll
       // if (role === 'host') console.log({ target });
       if (see === 'top') {
-        var chat_start = chat_content.scrollTop - chat_content.getBoundingClientRect().top;
+        var chat_start = chat_content.scrollTop - chatBB.top;
         if (added instanceof Node) {
           added = [added];
         }
@@ -27,12 +29,11 @@ function makeScrollManagerFor(chat_content, chat_spacer) {
 
       await manager.scrollTo(instantTarget, target);
       // if (role === 'host') console.log('got to', chat_content.scrollTop);
-      requestAnimationFrame(() => {
-        // this RAF prevents weird behavior?? (at least in Chrome)
-        // give the browser a chance to catch its breath i guess
-        chat_spacer.style.removeProperty('height');
-        // if (role === 'host') console.log('got to', chat_content.scrollTop);
-      });
+      await { then(cb) {requestAnimationFrame(cb)} };
+      // this RAF prevents weird behavior?? (at least in Chrome)
+      // give the browser a chance to catch its breath i guess
+      chat_spacer.style.removeProperty('height');
+      // if (role === 'host') console.log('got to', chat_content.scrollTop);
     },
     scrollTo(instantTarget, target) {
       // if (role === 'host') console.log(chat_content.scrollTop, instantTarget, target);

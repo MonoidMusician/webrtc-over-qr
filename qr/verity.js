@@ -1,12 +1,4 @@
-try {
-  Verity = {};
-  if (typeof globalThis !== 'undefined' && globalThis.Ve && globalThis.Ve.onload) {
-    Verity.onload = globalThis.Ve.onload;
-  }
-  Ve = Verity;
-} catch {
-  Verity = Ve = {};
-}
+Verity = Ve = {};
 (function Veritification() {
   Ve.noop = ()=>{};
 
@@ -40,6 +32,10 @@ try {
     // Capture `this` from the second call, so that
     // ({ foo: "bar" }) == _().call({ foo: "bar" }, (function () { return this }))
     (...args) => function (fn) { return fn.call(this, ...args) }
+  );
+
+  const _this = sugar(
+    name => function() { return this[name] }
   );
 
   // Create a wrapper for the property:
@@ -132,11 +128,38 @@ try {
   //     _pipe.join(", ").length.line_(["do", "re", "mi"]) == 10
   const _pipe = pipelining([]);
 
+  const intercalate = (fixed, ...intermediates) => {
+    const result = [];
+    fixed.forEach((item, i) => {
+      result.push(item);
+      if (i < fixed.length - 1)
+        result.push(intermediates[i]);
+    });
+    return result;
+  };
+  intercalate.raw = ({ raw: fixed }, ...intermediates) => {
+    return intercalate(fixed, ...intermediates);
+  };
+
   //////////////////////////////////////////////////////////////////////////////
 
   Object.assign(Ve, {
-    sugar, _, mk, modifier, compose, _pipe,
+    sugar, _, _this, mk, modifier, compose, _pipe, intercalate,
   });
+
+  // Create a string whose value is computed on demand
+  //     Ve.StringOnDemand(() => "hi") instanceof String == true
+  //     String(Ve.StringOnDemand(() => "hi")) == "hi"
+  //     Ve.StringOnDemand(() => "hello") + " world" == "hello world"
+  Ve.StringOnDemand = fn => Object.create(Object.assign(new String(), { toString: fn, valueOf: fn }));
+
+  // Create a number whose value is computed on demand
+  //     Ve.NumberOnDemand(() => Math.random()) instanceof Number == true
+  //     Number(Ve.NumberOnDemand(() => Math.PI)) == Math.PI
+  //     Ve.NumberOnDemand(() => 2) + 3 == 5
+  Ve.NumberOnDemand = fn => Object.create(Object.assign(new Number(), { valueOf: fn }));
+
+  //////////////////////////////////////////////////////////////////////////////
 
   var SPECIALS = {
     style: (e, style) =>
@@ -153,11 +176,15 @@ try {
       e.textContent = textContent,
     $children: (parent, topChildren) => {
       parent.clearChildren();
-      if (!topChildren) return;
-      if (topChildren instanceof Node) {
-        return parent.appendChild(topChildren);
-      }
       function go(children) {
+        if (typeof children === 'function') children = children();
+        if
+          ( typeof children === 'string' || children instanceof String
+          || typeof children === 'number' || children instanceof Number
+          || children instanceof Node
+          )
+          children = [children];
+        if (!children) return;
         for (let child of children) {
           if (child === undefined || child === null) continue;
           if (Array.isArray(child)) {
@@ -168,6 +195,7 @@ try {
         }
       }
       go(topChildren);
+      return parent;
     },
     classList: (e, classes) => {
       e.classList = '';
@@ -175,10 +203,11 @@ try {
         if (typeof classes === 'string' || classes instanceof String) {
           e.classList = String(classes);
         } else {
-          e.classList.add(...classes);
+          e.classList.add(...classes.flatMap(x=>x.split(/\s+/u).filter(Boolean)));
         }
       }
     },
+    class: (...arg) => SPECIALS.classList(...arg),
     // $view: (e, view) =>
     //   view && (e.$view = view),
     // $preview: (e, preview) =>
@@ -214,33 +243,57 @@ try {
     return e;
   };
   function createChildOf(parent, props, tag, ...children) {
+    return createElementNS(parent?.namespaceURI, props, tag, ...children);
+  }
+  function createElementNS(namespaceURI, props, tag, ...children) {
+    const resolved = precreateElementNS(namespaceURI, props, tag, ...children);
+    return createElementResolved(resolved);
+  }
+  function createElementResolved({ namespaceURI, props, tag, children }) {
+    if (!tag && !props) {
+      if (children?.length === 1) {
+        return children[0];
+      } else {
+        const result = document.createDocumentFragment();
+        SPECIALS['$children'](result, children);
+        return result;
+      }
+    }
+    let e = namespaceURI
+      ? document.createElementNS(namespaceURI || undefined, tag)
+      : document.createElement(tag);
+    if (children?.length) props['$children'] = children;
+    applyProps(e, props);
+    return e;
+  }
+  function precreateElementNS(namespaceURI, props, tag, ...children) {
+    if (typeof tag === 'function') tag = tag();
     if (typeof props === 'string' || typeof props === 'number' || props instanceof String || props instanceof Number) {
-      if (!tag) {
-        return document.createTextNode(String(props));
-      }
-      children = [String(props), ...children];
+      children = [document.createTextNode(String(props)), ...children];
+      props = undefined;
+    } else if (props instanceof Node) {
+      children = [props, ...children];
+      props = undefined;
+    } else if (Array.isArray(props)) {
+      children = [...props, ...children];
+      props = undefined;
+    }
+    props = props ? Object.assign({}, props) : undefined;
+    if (props) {
+      tag = tag || props['$tag'];
+      if (!tag) tag = 'div';
+      delete props['$tag'];
+      namespaceURI = namespaceURI || props['$NS'];
+      delete props['$NS'];
+      if (props['$children'])
+        children = [props?.['$children'], children];
+      delete props['$children'];
+    } else if (tag) {
       props = {};
     }
-    if (Array.isArray(props)) {
-      return SPECIALS['$children'](document.createDocumentFragment(), props);
-    }
-    if (props instanceof Node) {
-      if (!tag) {
-        return props;
-      }
-      children = [props];
-      props = {};
-    }
-    props = props ? Object.assign({}, props) : {};
-    if (children?.length) {
-      props['$children'] = [props?.['$children'], children];
-    }
-    tag = tag || props['$tag'];
-    if (!tag) tag = 'div';
-    delete props['$tag'];
     if (tag instanceof Element) tag = tag.tagName;
-    let e = parent?.namespaceURI ? document.createElementNS(parent?.namespaceURI || undefined, tag) : document.createElement(tag);
-    return applyProps(e, props);
+    if (namespaceURI instanceof Element) namespaceURI = namespaceURI.namespaceURI;
+    return { namespaceURI, tag, props, children };
   };
 
   Object.assign(Ve, {
@@ -248,9 +301,32 @@ try {
   });
 
   Ve.ById = sugar(id => document.getElementById(id));
-  Ve.HTML = sugarArg(tag => (props = {}, ...children) => createChildOf(undefined, props, tag, ...children));
-  Ve.SVGNS = 'http://www.w3.org/2000/svg';
-  Ve.SVG = sugarArg(ty => (props = {}, ...children) => applyProps(document.createElementNS(Ve.SVGNS, ty), props));
+
+  Ve.NS = {
+    SVG: "http://www.w3.org/2000/svg",
+    XHTML: "http://www.w3.org/1999/xhtml",
+    HTML: "XHTML", // DRY
+    XLink: "http://www.w3.org/1999/xlink",
+    XML: "http://www.w3.org/XML/1998/namespace",
+    XMLNS: "http://www.w3.org/2000/xmlns/",
+  };
+  for (let k in Ve.NS) if (Ve.NS[k] in Ve.NS) Ve.NS[k] = Ve.NS[Ve.NS[k]];
+  for (let k in Ve.NS) Ve.NS[k.toLowerCase()] = Ve.NS[k];
+
+  // Templating a DocumentFragment
+  Ve.DOM = (fixed, ...args) => {
+    return createChildOf(null, Ve.dedent.intercalate(fixed, ...args));
+  };
+  Ve.DOM.NS = sugarStr(ns => sugarArg(tag => sugarArg(cls => (props = {}, ...children) => {
+    if (ns in Ve.NS) ns = Ve.NS[ns];
+    // hint that props needs to exist
+    if (!props && cls) props = {};
+    const resolved = precreateElementNS(ns, props, tag, ...children);
+    if (cls) resolved.props.class = cls;
+    return createElementResolved(resolved);
+  })));
+  Ve.HTML = Ve.DOM.NS.HTML;
+  Ve.SVG = Ve.DOM.NS.SVG;
 
   Ve.ico = sugarStr(classList => Ve.HTML.i({classList}));
   Ve.iconoir = sugarStr(classList => {
@@ -290,6 +366,67 @@ try {
     cb(...args);
     return Ve.noop;
   };
+
+  Ve.styl = {
+    inline: { display: 'inline' },
+    block: { display: 'block' },
+    flex: { display: 'flex' },
+    flexColumn: { display: 'flex', flexDirection: 'column' },
+    flexRow: { display: 'flex', flexDirection: 'row' },
+    pointer: { cursor: 'pointer' },
+    textCursor: { cursor: 'text' },
+  };
+
+  Ve.CSS = Object.create(window.CSS);
+  Object.defineProperty(Ve.CSS, ":root", { get: () => document.documentElement });
+  Ve.CSS.styleRoot = function(tgt) {
+    if (tgt instanceof Element) return tgt;
+    if (tgt instanceof Document) return tgt.documentElement;
+    return window.document.documentElement;
+  };
+  Ve.CSS.rootStyle = function(tgt, computed=false) {
+    if (tgt instanceof CSSStyleDeclaration) return tgt;
+    tgt = Ve.CSS.styleRoot(tgt);
+    return computed ? getComputedStyle(tgt) : tgt.style;
+  };
+  // requires parsing stylesheets :-/
+  // Ve.CSS.getVars = function(tgt) {};
+  Ve.CSS.getVar = function(name, tgt) {
+    const style = Ve.CSS.rootStyle(tgt || this, true);
+    return style.getPropertyValue(`--${name}`);
+  };
+  Ve.CSS.etVar = function(...args) {
+    if (args.length > 1) return Ve.CSS.setVar.call(this, ...args);
+    return Ve.CSS.getVar.call(this, ...args);
+  };
+  Ve.CSS.setVar = function(name, value, tgt) {
+    const style = Ve.CSS.rootStyle(tgt || this, false);
+    if (value === null || value === undefined) {
+      style.removeProperty(`--${name}`);
+    } else {
+      style.setProperty(`--${name}`, value);
+    }
+  };
+  Ve.CSS.setVars = function(values, tgt) {
+    const style = Ve.CSS.rootStyle(tgt || this, false);
+    for (let [name, value] of Object.entries(values)) {
+      if (value === null || value === undefined) {
+        style.removeProperty(`--${name}`);
+      } else {
+        style.setProperty(`--${name}`, value);
+      }
+    }
+  };
+  Ve.__var = Ve.CSS.var = Ve.CSS.__ = Ve.CSS.__var = new Proxy(Ve.CSS.etVar, {
+    get(__, name, tgt) {
+      return Ve.CSS.getVar.call(tgt, name);
+    },
+    set(_, name, value, tgt) {
+      return Ve.CSS.setVar.call(tgt, name, value);
+    },
+  });
+
+  //////////////////////////////////////////////////////////////////////////////
 
   Ve.GET = async (url, options) => {
     const decisions = {
@@ -370,7 +507,7 @@ try {
     get: function () {
       return new Proxy(this, {
         get: (t, p) => t.getAttribute(p),
-        set: (t, p, v, x) => { t.setAttribute(p, v); return true; },
+        set: (t, p, v) => { t.setAttribute(p, v); return true; },
       });
     },
     set: function (newAttrs) {
@@ -378,6 +515,25 @@ try {
       Object.assign(this.attrs, newAttrs);
     },
   });
+  Object.defineProperty(Element.prototype, "on", {
+    get: function () {
+      return sugar(ty => (handler, options) => Ve.on[ty](this, handler, options));
+    },
+  });
+  Object.defineProperty(Element.prototype, "once", {
+    get: function () {
+      return sugar(ty => (handler, options) => Ve.once[ty](this, handler, options));
+    },
+  });
+  Object.defineProperty(Element.prototype, "__var", {
+    get: function () {
+      return new Proxy(this, {
+        get: (t, p) => Ve.CSS.getVar.call(t, p),
+        set: (t, p, v) => { Ve.CSS.setVar.call(t, p, v); return true; },
+      });
+    },
+  });
+
 
   Element.prototype.applyProps = pythonic(applyProps);
   Element.prototype.getAttributes = function() {
@@ -538,6 +694,9 @@ try {
   //////////////////////////////////////////////////////////////////////////////
 
   Ve.dedent = (strings, ...values) => {
+    return Ve.dedent.intercalate(strings, ...values).join('');
+  };
+  Ve.dedent.intercalate = (strings, ...values) => {
     if ('raw' in strings) strings = strings['raw'];
     if (typeof strings === 'string' || strings instanceof String) strings = [strings];
     if (!strings.length) return '';
@@ -547,13 +706,12 @@ try {
         return {line, follows: i !== strings.length-1 && j === these_lines.length-1};
       });
     });
-    // console.log({ lines });
+    if (!lines.length) return Ve.intercalate(strings, ...values);
     let commonPrefix = null;
     for (const {line, follows} of lines) {
       const prefix = line.match(/^[^\S\r\n\f]*/u)[0];
       if (!follows && prefix === line) continue; // no content
       if (!commonPrefix || commonPrefix.startsWith(prefix)) {
-        // console.log({ commonPrefix, prefix });
         commonPrefix = prefix;
       }
       if (!commonPrefix) break;
@@ -573,9 +731,7 @@ try {
         replaced[last] = replaced[last].replace(/\n[^\S\r\n\f]*$/, '');
       }
     }
-    const result = String.raw({ raw: replaced }, ...values);
-    // console.log({ replaced, result });
-    return result;
+    return intercalate.raw({ raw: replaced }, ...values);
   };
 
   Ve.escape = {
@@ -585,10 +741,12 @@ try {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;')
       .replaceAll("'", '&#039;'),
+    CSS: s => CSS.escape(s),
+    JS: s => JSON.stringify(s),
+    JSON: s => JSON.stringify(s),
   };
 
   //////////////////////////////////////////////////////////////////////////////
 
   return this;
 }).call(Verity);
-try {Ve.onload(Ve)} catch{}

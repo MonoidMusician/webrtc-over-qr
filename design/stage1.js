@@ -7,17 +7,17 @@ if (role === 'guest') {
     const current = 'stage1';
     dc.send(JSON.stringify({ stage: current, type: 'ready' }));
 
-    let pending = [];
+    let pending = []; let idle = true;
     dc.onmessage = ev => {
       pending.push(ev);
-      if (pending.length === 1) {
+      if (idle) {
         poke();
       }
     };
 
     function poke() {
       let ev = pending.shift();
-      if (!ev) return;
+      if (idle = !ev) return;
       let request = JSON.parse(ev.data);
       assert(request.stage === current);
       if (request.type === 'done') {
@@ -59,7 +59,7 @@ if (role === 'guest') {
     dc.onmessage = () => {};
     dc.send(`document.head.appendChild(Object.assign(document.createElement('script'), {src:'stage1.js'}));`);
     var ev = await Ve.once.message(dc);
-    console.log('ready', ev);
+    // console.log('ready', ev);
     for (let child of document.head.children) {
       if (isEphemeral(child)) continue;
       let tag = child.tagName.toLowerCase();
@@ -81,7 +81,7 @@ if (role === 'guest') {
     dc.send(JSON.stringify({ stage: current, type: 'done' }));
     var ev = await Ve.once.message(dc);
     var ev = await Ve.once.message(dc);
-    console.log('done', ev);
+    // console.log('done', ev);
     // dc.onmessage = onmsg;
     stage2(dc);
   };
