@@ -126,7 +126,7 @@ function app() {
       ' ', HTML.span.mime(['[', mime, ']']),
     ],
     'text/*': (data, props) => {
-      let { text, mime, type, subtype } = fromDataURI(data.src);
+      let { text, mime, type, subtype } = Ve.fromDataURI(data.src);
       text = text.replaceAll('\r\n','\n').replaceAll('\r','\n').trim(); // idk
       props.data = { mime, type, subtype };
       return [
