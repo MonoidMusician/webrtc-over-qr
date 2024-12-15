@@ -35,18 +35,6 @@ async def watching(path):
             else: changed = "/" # should not happen
             await websocket.send(changed)
 
-# A proxy path to escalate permissions on `data:` so we can fetch files
-# (instead of baking them into the served HTML)
-@app.get("/data:<path:_filename>")
-async def dataURI(_filename):
-    uri = request.path.lstrip('/')
-    with urlopen(uri) as rawdata:
-        resp = await quart.make_response(rawdata.getvalue())
-        for hd, vl in rawdata.headers.items():
-            resp.headers.remove(hd)
-            resp.headers.add(hd, vl)
-        return resp
-
 @app.get("/<path:filename>")
 async def static(filename):
     resp = await quart.send_from_directory(".", filename)

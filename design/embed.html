@@ -90,7 +90,7 @@
           .replace('$TEMPLATE_OFFER', JSON.stringify(offer))
           .replace('$TEMPLATE_PASSWORD', JSON.stringify(password));
         const URI = toDataURI(HTML, 'text/html');
-        document.querySelector("iframe#hosted").src = (location.protocol==='https:'?"/":"") + URI;
+        document.querySelector("iframe#hosted").src = URI;
       }
     </script>
     <script src="host.js" class="host-only"></script>
