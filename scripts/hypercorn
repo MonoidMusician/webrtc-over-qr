@@ -10,7 +10,7 @@ fi
 if [[ -f cert/localhost.crt && -f cert/localhost.key ]]; then
   (set -x; .venv/bin/hypercorn \
     --reload \
-    --bind 0.0.0.0:37393 \
+    --bind 0.0.0.0:27392 \
     --certfile cert/localhost.crt \
     --keyfile cert/localhost.key \
     --websocket-ping-interval 20 \
@@ -21,7 +21,7 @@ if [[ -f cert/localhost.crt && -f cert/localhost.key ]]; then
 else
   (set -x; .venv/bin/hypercorn \
     --reload \
-    --bind 0.0.0.0:37393 \
+    --bind 0.0.0.0:27392 \
     --websocket-ping-interval 20 \
     --graceful-timeout 5 \
     --worker-class uvloop \
