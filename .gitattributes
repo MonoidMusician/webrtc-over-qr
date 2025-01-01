@@ -1,0 +1,2 @@
+*.min.* linguist-generated
+/built/* linguist-generated

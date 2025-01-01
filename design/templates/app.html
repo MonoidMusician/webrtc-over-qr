@@ -1,0 +1,21 @@
+<div id="main">
+  <h1 id="title" style="font-size: 2rem">
+    {% filter indent(width=4) %}{% include 'favicon.svg' %}{% endfilter %}&thinsp;WebRTC over QR <span id="role_description"></span>
+  </h1>
+  <div id="chat_content">
+    <div id="chat_spacer"></div>
+    <div id="loading">
+      {% filter indent(width=6) %}{% include 'introduction.html' %}{% endfilter %}
+      {% filter indent(width=6) %}{% include 'caveats.html' %}{% endfilter %}
+      <hr/>
+      {% filter indent(width=6) %}{% include 'instructions.html' %}{% endfilter %}
+      <hr/>
+      <h2>Logs</h2>
+    </div>
+  </div>
+  <div id="controls">
+    <label for="file_upload">{% include 'plus.svg' %}</label>
+    <input type="file" id="file_upload" multiple disabled />
+    <input id="compose" />
+  </div>
+</div>

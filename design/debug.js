@@ -1,3 +1,4 @@
+"use strict";
 function printEvents(label, rtc, cb = () => {}) {
   function snapshot(o) {
     const r = {};
@@ -23,8 +24,29 @@ function printEvents(label, rtc, cb = () => {}) {
     return delta;
   }
 
-  for (let k in rtc) {
-    if (!k.startsWith("on")) continue;
-    rtc.addEventListener(k.substring(2), e => { console.log(label, e.timeStamp, e.type, diff_rtc(), e), cb(e) });
-  }
+  const listener = e => {
+    const delta = diff_rtc();
+    if (label) console.log(label, e.timeStamp, e.type, delta, e);
+    const eventJSON = {};
+    let p = e;
+    while (p && p !== Event.prototype) {
+      for (const k of Object.getOwnPropertyNames(p)) {
+        try {
+          eventJSON[k] = e[k];
+        } catch(e){}
+      }
+      p = Object.getPrototypeOf(p);
+    }
+    delete eventJSON.isTrusted;
+    if (cb) cb(e, delta, eventJSON);
+  };
+
+  const events = [];
+  for (const k in rtc) if (k.startsWith("on")) events.push(k.substring(2));
+
+  for (const k of events) rtc.addEventListener(k, listener);
+
+  return () => {
+    for (const k of events) rtc.removeEventListener(k, listener);
+  };
 }

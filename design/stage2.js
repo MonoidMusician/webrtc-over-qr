@@ -1,5 +1,14 @@
+"use strict";
+window.cleanupBootstrap = function cleanupBootstrap() {
+  delete window.rtc;
+  delete window.dc;
+  delete window.stage1;
+  delete window.stage2;
+  delete window.cleanupBootstrap;
+  host_ui.cleanup?.();
+}
 if (role === 'guest') {
-  (async function stage2guest() {
+  window.stage2 = async function stage2guest({ rtc, dc }) { try {
     const current = 'stage2';
     document.body.style = ''; // FIXME
     document.body.innerHTML = '';
@@ -20,7 +29,8 @@ if (role === 'guest') {
       var request = JSON.parse(ev.data);
       assert(request.stage === current);
       if (request.type === 'done') {
-        app();
+        cleanupBootstrap();
+        app({ rtc, dc });
         return dc.send(JSON.stringify({ stage: current, type: 'done' }));
       }
       if (request.type === 'pop') {
@@ -52,13 +62,17 @@ if (role === 'guest') {
         poke();
       }
     }
-  })();
+  } catch(e) {
+    document.body.textContent = String(e);
+    dc.send(JSON.stringify({ stage: current, type: 'error', message: e.message, stack: e.stack, e }));
+    throw e;
+  }};
 } else if (role === 'host') {
-  stage2 = async function stage2host(dc) {
+  window.stage2 = async function stage2host({ rtc, dc }) { try {
     function isEphemeral(el) {
-      return !!new Set(el.classList).intersection(isEphemeral.classes).size;
+      return [...el.classList].some(cls => isEphemeral.classes.includes(cls));
     }
-    isEphemeral.classes = new Set(["ephemeral", "stage0", "stage1", "stage2", "host-only"]);
+    isEphemeral.classes = ["ephemeral", "stage0", "stage1", "stage2", "host-only"];
     const current = 'stage2';
     async function visit(el) {
       if (isEphemeral(el)) return;
@@ -80,10 +94,18 @@ if (role === 'guest') {
     }
     await visitChildrenOf(document.body);
     dc.send(JSON.stringify({ stage: current, type: 'done' }));
-    var ev = await Ve.once.message(dc);
-    // console.log('done', ev);
-    app();
-  };
+    var ev = JSON.parse((await Ve.once.message(dc)).data);
+    if (ev.type === 'error') {
+      console.error(ev);
+      throw new Error(ev.message);
+    }
+    assert(ev.stage === current);
+    assert(ev.type === 'done');
+    cleanupBootstrap();
+    app({ rtc, dc });
+  } catch(e) {
+    host_ui.throwError(e); throw e;
+  }};
 } else {
   console.error('Neither host nor guest:', role);
 }

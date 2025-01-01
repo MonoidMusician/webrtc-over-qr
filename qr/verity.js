@@ -2,7 +2,9 @@
 // You should not consider this file as normal JavaScript objects that play   //
 // nicely with the runtime and assumptions that code and handlers make. You   //
 // should consider this (not-so-smol) library as a way of enabling syntax     //
-// that you (I) might like to write.
+// that you (I) might like to write. Hopefully there are enough examples to   //
+// give you a good idea of what uses we intend for them, what the suggested   //
+// syntax is.                                                                 //
 ////////////////////////////////////////////////////////////////////////////////
 Verity = Ve = {};
 (function Veritification() {
@@ -48,8 +50,11 @@ Verity = Ve = {};
   // Another kind of getter, on `this` instead of the first argument.
   //     _this.prop = function(){ return this.prop };
   //     _this.prop.call({ prop: 5 }) == 5
+  // As a function, it just returns `this`, which is useful in composition
+  // pipelines or so forth.
   const _this = sugar(
-    name => function() { return this[name] }
+    name => function() { return this[name] },
+    function() { return this },
   );
 
   // Create a wrapper for the property:
@@ -120,19 +125,19 @@ Verity = Ve = {};
   };
 
   // Collect arguments to compose via proxied member/method/function applications.
-  const pipelining = pipelined => new Proxy(()=>{}, {
+  const pipelining = (pipelined, finit="line_") => new Proxy(()=>{}, {
     get: (_target, property, _thisArg) => {
       // Special case to end the pipeline
       // (yeah, it could be a symbol to be pedantic about abstraction,
       // but that makes it less symmetrical!)
-      if (property === "line_") return compose(...pipelined);
+      if (property === finit) return compose(...pipelined);
 
       // See documentation for `compose` for why this is inserted as
       // a string/symbol still, instead of `_[property]`:
-      return pipelining([ ...pipelined, property ]);
+      return pipelining([ ...pipelined, property ], finit);
     },
     apply: (_target, _thisArg, args) => {
-      return pipelining([ ...pipelined, _(...args) ]);
+      return pipelining([ ...pipelined, _(...args) ], finit);
     },
   });
 
@@ -140,7 +145,7 @@ Verity = Ve = {};
   //     _pipe.join("").line_ = x => x.join("")
   //     _pipe.join(", ").line_(["do", "re", "mi"]) == "do, re, mi"
   //     _pipe.join(", ").length.line_(["do", "re", "mi"]) == 10
-  const _pipe = pipelining([]);
+  const _pipe = pipelining([], "line_");
 
   const intercalate = (fixed, ...intermediates) => {
     const result = [];
@@ -391,32 +396,33 @@ Verity = Ve = {};
   // `tgt.on.click(handler, options)` with the magic of prototype pollution,
   // but `Ve.on` is a global method if you prefer that, or are working with
   // other event sources (like `window`).
-  Ve.on = sugar(ty => (tgt, handler, options) => {
+  Ve.on = sugarStr(tys => (tgt, handler, options) => {
     if (!handler && !options) {
       return CbAndPromise(
-        (handler, options) => Ve.on[ty](tgt, handler, options),
-        handler => Ve.once[ty](tgt, handler),
+        (handler, options) => Ve.on(tys)(tgt, handler, options),
+        handler => Ve.once(tys)(tgt, handler),
       );
     }
     if (typeof options === 'function' && typeof handler !== 'function') {
       [handler, options] = [options, handler];
     };
-    tgt.addEventListener(ty, handler, options);
+    if (typeof tys === 'string' || tys instanceof String) tys = tys.split(',');
+    for (const ty of tys) tgt.addEventListener(ty, handler, options);
     return () => {
-      tgt.removeEventListener(ty, handler, options);
+      for (const ty of tys) tgt.removeEventListener(ty, handler, options);
       tgt = null; handler = null; options = null;
     };
   });
   // `Ve.once` is like `Ve.on` but it sets the `{once:true}` option.
-  Ve.once = sugar(ty => (tgt, handler, options) => {
+  Ve.once = sugarStr(tys => (tgt, handler, options) => {
     if (!handler && !options) {
-      return PromiseOrCb((handler, options) => Ve.once[ty](tgt, handler, options));
+      return PromiseOrCb((handler, options) => Ve.once(tys)(tgt, handler, options));
     }
     if (typeof options === 'function' && typeof handler !== 'function') {
       [handler, options] = [options, handler];
     };
     options = Object.assign({}, options, {once:true});
-    return Ve.on[ty](tgt, handler, options);
+    return Ve.on(tys)(tgt, handler, options);
   });
   // Run synchronously without delay.
   Ve.immediately = (cb, ...args) => {
@@ -432,6 +438,7 @@ Verity = Ve = {};
     flex: { display: 'flex' },
     flexColumn: { display: 'flex', flexDirection: 'column' },
     flexRow: { display: 'flex', flexDirection: 'row' },
+    marginAuto: { margin: 'auto' },
     pointer: { cursor: 'pointer' },
     textCursor: { cursor: 'text' },
   };
@@ -497,9 +504,94 @@ Verity = Ve = {};
       return Ve.CSS.getVar.call(tgt, name);
     },
     set(_, name, value, tgt) {
-      return Ve.CSS.setVar.call(tgt, name, value);
+      Ve.CSS.setVar.call(tgt, name, value);
+      return true;
     },
   });
+
+  //////////////////////////////////////////////////////////////////////////////
+
+  Ve.DynParams = function(getFragment, setFragment, plural=false) {
+    if (!setFragment) setFragment = undefined;
+
+    let fragment;
+    let params;
+    const getParams = () => {
+      let last = fragment;
+      fragment = getFragment();
+      if (!params || last !== fragment)
+        return params = new URLSearchParams(fragment);
+      return params;
+    };
+    const modifyParams = (fn) => {
+      const params = getParams();
+      const result = fn(params) ?? params;
+      if (result === false) return false;
+      if (result) {
+        setFragment(result);
+        fragment = undefined;
+      }
+      return true;
+    };
+
+    return new Proxy({}, {
+      get: (_, name) => plural ? getParams().getAll(name) : getParams().get(name),
+      ownKeys: () => [...new Set(getParams().keys())],
+      has: (_, name) => getParams().has(name),
+      set: setFragment && ((_, name, value) => modifyParams(params => {
+        if (value instanceof Array) {
+          params.delete(name);
+          for (const v of value) {
+            params.append(name, v);
+          }
+        } else {
+          params.set(name, value);
+        }
+      })),
+      deleteProperty: setFragment && ((_, name) => modifyParams(params => {
+        params.delete(name);
+      })),
+    });
+  };
+  Ve.Params = {
+    _withPrefix: (prefix, setter, that=undefined) => {
+      if (typeof setter === 'string') {
+        return [
+          () => {
+            let v = (that||window.location)[setter];
+            if (v.startsWith(prefix)) {
+              v = v.substring(prefix.length);
+            }
+            return v;
+          },
+          Ve.Params._withPrefix(prefix, v => {
+            if (that) that[setter] = v; else
+              window.history.replaceState(null, "", Object.assign(new URL(window.location), {[setter]: v}));
+          }),
+        ];
+      }
+      return params => {
+        console.log(params, String(params));
+        params = String(params);
+        if (params) setter.call(that, prefix + params);
+        else setter.call(that, "");
+      };
+    },
+  };
+  Object.assign(Ve.Params, {
+    _search: Ve.Params._withPrefix(`?`, 'search'),
+    _hash: Ve.Params._withPrefix(`#`, 'hash'),
+  });
+  Object.assign(Ve.Params, {
+    search: Ve.DynParams(...Ve.Params._search, false),
+    hash: Ve.DynParams(...Ve.Params._hash, false),
+    all: {
+      search: Ve.DynParams(...Ve.Params._search, true),
+      hash: Ve.DynParams(...Ve.Params._hash, true),
+    },
+  });
+  Ve.Params.query = Ve.Params.search;
+  Ve.Params.all.query = Ve.Params.all.search;
 
   //////////////////////////////////////////////////////////////////////////////
   // Convenience network methods, wrappers around `fetch()`, defaulting to    //
@@ -616,6 +708,7 @@ Verity = Ve = {};
       set: function (newAttrs) {
         this.clearAttributes();
         Object.assign(this.attrs, newAttrs);
+        return true;
       },
     },
     // Scoped CSS variables
@@ -733,17 +826,17 @@ Verity = Ve = {};
     return () => { cancelIdleCallback(id); cb = undefined; args = undefined; };
   });
 
-  // `DOMContentLoaded` unless `document.readyState === 'completed'` already
+  // `DOMContentLoaded` unless `document.readyState === 'complete'` already
   Ve.ContentLoad = PromiseOrCb((cb, ...args) => {
     // https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState
-    // 'loading', 'interactive', 'completed'
+    // 'loading', 'interactive', 'complete'
     //
     // interactive
     //   The document has finished loading and the document has been parsed but
     //   sub-resources such as scripts, images, stylesheets and frames are still
     //   loading. The state indicates that the DOMContentLoaded event is about
     //   to fire.
-    if (window.document.readyState === 'completed') {
+    if (window.document.readyState === 'complete') {
       return Ve.immediately(cb, undefined, ...args);
     } else {
       // https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event
@@ -765,9 +858,9 @@ Verity = Ve = {};
       return Ve.once.DOMContentLoaded(window, (event) => cb(event, ...args));
     }
   });
-  // `window.onload` unless `document.readyState === 'completed'` already
+  // `window.onload` unless `document.readyState === 'complete'` already
   Ve.FullLoad = PromiseOrCb((cb, ...args) => {
-    if (window.document.readyState === 'completed') {
+    if (window.document.readyState === 'complete') {
       return Ve.immediately(cb, undefined);
     } else {
       return Ve.once.load(window, (event) => cb(event, ...args));
@@ -933,6 +1026,9 @@ Verity = Ve = {};
     return intercalate.raw({ raw: replaced }, ...values);
   };
 
+  Ve.scripty = (source, ...values) =>
+    Ve.dedent(source, ...values.map(v => `(${JSON.stringify(v)})`));
+
   // Some helpers for escaping strings into various languages
   Ve.escape = {
     HTML: s => s
@@ -1056,6 +1152,7 @@ Verity = Ve = {};
     },
     set(_, name, value) {
       Ve.VerbExp.defined[name] = value;
+      return true;
     },
   });
 

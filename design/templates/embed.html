@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <base href="">
+    <script class="stage1" src="stage1.js"></script>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="index.css" />
+    <script src="utils.js"></script>
+    <script src="debug.js"></script>
+    <script src="scroll.js"></script>
+    <script src="verity.js"></script>
+    <script src="upload.js"></script>
+
+    <script src="app.js"></script>
+    <script src="app/debug.js"></script>
+    <script src="app/text.js"></script>
+    <script src="app/ping.js"></script>
+    <script src="app/media.js"></script>
+    <script src="app/canvas.js"></script>
+
+    <script src="media.js"></script>
+    <script src="stage2.js"></script>
+    <script src="host/to_guest.js"></script>
+    <script src="host/from_guest.js"></script>
+    <script src="host/ui.js"></script>
+    <script src="host.js"></script>
+    <script src="zxing.min.js"></script>
+    <script class="host-only">
+      window.getTemplate = async () => await (await fetch('stage0.min.html')).text();
+    </script>
+  </head>
+  <body>
+    {% filter indent(width=4) %}{% include 'app.html' %}{% endfilter %}
+    <script class="ephemeral">
+      (function() {
+        var watching = ['/design/', '/app.py'].map(tgt => {
+          const ws = new WebSocket('/watch' + tgt);
+          ws.onmessage = e => {
+            let url = e.data;
+            let found = false;
+            for (let doc of [document, document.querySelector('iframe#hosted')?.contentDocument]) {
+              for (let link of doc?.querySelectorAll("link")||[]) {
+                let pathname = URL.parse(link.href, location.href).pathname;
+                if (pathname === url) {
+                  found = true;
+                  link.href = pathname + '?' + Math.random();
+                }
+              }
+            }
+            if (!found) {
+              watching.forEach(w => w.close());
+              setTimeout(() => location.reload(), tgt === '/app.py' ? 5000 : 100);
+            }
+          };
+          return ws;
+        });
+      })();
+    </script>
+  </body>
+</html>

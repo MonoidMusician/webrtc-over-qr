@@ -1,3 +1,4 @@
+"use strict";
 function makeScrollManagerFor(chat_content, chat_spacer) {
   var chat_scrolling = 0;
 
