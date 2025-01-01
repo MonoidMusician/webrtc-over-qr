@@ -1,0 +1,15 @@
+<div id="instructions" style="text-align: left; line-height: 130%">
+  <h2>Instructions</h2>
+
+  <p>First, open the provided HTML on the guest device. You can get it as a data URI, which you will have to copy and paste into guest's browser (clicking on it will not work, and a QR code scanner will need to give you the text of the QR code: they will not open it as a link either), or you can save the HTML to a file and load it that way, or temporarily host it on a webserver and so on.</p>
+
+  <div id="to_guest"></div>
+
+  <p>Then, if the connection does not automatically establish itself (if your host is not Chromium), you will need to get the certificate fingerprint from the guest. You can copy/paste it or enter it manually, or, if the host is loaded in a secure context, you can use the QR code scanner below by selecting a camera to use. Or you can take a picture of the QR code in another app and upload/paste it here.</p>
+
+  <div id="from_guest"></div>
+
+  <p>The WebRTC connection is not particularly time sensitive, so you should have time to open the site on the guest. However, it can only be attempted once, so if it fails or if you get the fingerprint wrong, you will need to refresh this page <!-- or call `host()` --> and restart the whole procedure again. The HTML/QR code is specific to the connection attempt, you cannot reuse it!</p>
+
+  <p>And as mentioned in <a href="#caveats">Caveats</a>, Firefox has different behavior based on the <code>media.peerconnection.ice.obfuscate_host_addresses</code> in <code>about:config</code>. So you might want to set this to <code>false</code> while trying the demo, or try a different browser instead. Note that it is a global setting, so remember to set it back to the default <code>true</code> when you are done.</p>
+</div>
