@@ -1,11 +1,29 @@
 <div id="instructions" style="text-align: left; line-height: 130%">
   <h2>Instructions</h2>
 
-  <p>First, open the provided HTML on the guest device. You can get it as a data URI, which you will have to copy and paste into guest's browser (clicking on it will not work, and a <a href="https://webrtc-over-qr.veritates.love/scanner">QR code scanner</a> will need to give you the text of the QR code: they will not open it as a link either), or you can save the HTML to a file and load it that way, or temporarily host it on a webserver and so on.</p>
+  <p>First, load the provided HTML on the guest device. You have a few options for doing this, but they all have some difficulties.</p>
+
+  <h3>Load the data URI:</h3>
+  <ul>
+    <li><p>Use some (other) instant messaging to text the data URI to the guest device, and copy and paste it into the browser from there.</p></li>
+    <li><p>Use a <a href="https://webrtc-over-qr.veritates.love/scanner">compatible QR code scanner</a> to scan the QR code and copy the data URI from it into the browser. Most QR scanners will not automatically scan it, since it is not an HTTP or HTTPS URL!</p></li>
+  </ul>
+
+  Both of these options are complicated by the fact that browsers will not open data URIs from external sources, so you need to copy and paste it into the browser's URL bar.
+
+  <h3>Load the HTML directly:</h3>
+  <ul>
+    <li><p>You can save the HTML as a <code>.html</code> file and open it in the browser (at least on desktop computers).</p></li>
+    <li><p>Or, if you know what you're doing, you can temporarily host it on a local webserver, or some similar solution.</p></li>
+  </ul>
+
+  <h3>Don't bother with a separate guest device:</h3>
+
+  <p>See the Side-by-side tab here:</p>
 
   <div id="to_guest"></div>
 
-  <p>Then, if the connection does not automatically establish itself (if your host is not Chromium), you will need to get the certificate fingerprint from the guest. You can copy/paste it or enter it manually, or, if the host is loaded in a secure context, you can use the QR code scanner below by selecting a camera to use. Or you can take a picture of the QR code in another app and upload/paste it here.</p>
+  <p>Once the guest device loads it, if the connection does not automatically establish itself (if your host is not Chromium), you will need to get the certificate fingerprint from the guest. You can copy/paste it or enter it manually, or, if the host is loaded in a secure context, you can use the QR code scanner below by selecting a camera to use. Or you can take a picture of the QR code in another app and upload/paste it here.</p>
 
   <div id="from_guest"></div>
 

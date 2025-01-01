@@ -1,16 +1,14 @@
 Attempting to see if browsers can be tempted into bootstrapping a WebRTC text chat app over a `data:` QR code.
 
-It appears … the answer is kind of yes, sorta?!
+The answer appears to be … Yes!!
 
-Note: this can only be a text chat app, as access to camera and microphone is prohibited outside of HTTPS connections (which a `data:` URI certainly is not)
+(… If you ignore the fact that one does not simply open a `data:` URI from a QR code: QR scanners do not recognize it as a “link”, and browsers wouldn't even open it from external sources, it must be pasted into the URL bar manually.)
 
-## Run
+Note: this can only really produce a text chat app, as access to camera and microphone is prohibited outside of secure contexts (which a `data:` URI certainly is not).
 
-### Run the QR code demo
+## Website Demo
 
-- open `qr/index.html` **in Chromium** (Firefox and Safari don't implement it in the way we need)
-- open the link in Chromium or Safari, or scan QR code via an app and copy it into iOS Safari
-- do stuff??
+See more information and a demo including instructions at [https://webrtc-over-qr.veritates.love/](webrtc-over-qr.veritates.love).
 
 ## Haxx & caveats n questions
 
@@ -19,7 +17,7 @@ The major pain point is that the host accepting the connection requires knowing 
 
 We want to smuggle in data (most notably the certificate fingerprint) over the automatic connection, and construct an appropriate answer on the host side without seeing a real complete answer SDP.
 
-The connection *can* show up as an ICE candidate before the fingerprint and DTLS security layer is negotiated, but this only seems to happen in Chromium not Firefox.
+The connection *can* show up as an ICE candidate before the fingerprint and DTLS security layer is negotiated, but this only seems to happen in Chromium not Firefox or Safari.
 
 - port shows up, but NAT could very well get in the way if not over LAN
 - timestamps also show up, but yeah, maybe not the best source of info either...
