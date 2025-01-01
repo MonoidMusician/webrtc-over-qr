@@ -1,5 +1,5 @@
 "use strict";
-function host_ui({ rtc, dc }) {
+function host_ui({ rtc }) {
   host_ui.cleanup();
   const cleanup = host_ui.cleanup;
 
@@ -9,7 +9,7 @@ function host_ui({ rtc, dc }) {
     cleanup(localCleanup);
     localCleanup(
       compose.on.keyup(async ev => {
-        if (rtc.signalingState === 'stable') return localCleanup();
+        if (!rtc || rtc.signalingState === 'stable') return localCleanup();
         if (ev.key === 'Enter') {
           const value = compose.value.replaceAll('\u2588', '').trim();
           if (/\w+/.exec(value)[0] === 'upload') {
@@ -22,7 +22,7 @@ function host_ui({ rtc, dc }) {
         }
       }),
       compose.on.input(async ev => {
-        if (rtc.signalingState === 'stable') return localCleanup();
+        if (!rtc || rtc.signalingState === 'stable') return localCleanup();
         const value = compose.value.replaceAll('\u2588', '').trim();
         if (value.match(RE_FINGERPRINT)) {
           await host.setUFrag(value);
@@ -32,26 +32,7 @@ function host_ui({ rtc, dc }) {
     );
   }
 
-  window.ZXing && cleanup(listenForUploads(async files => {
-    const reader = new window.ZXing.BrowserQRCodeReader();
-    for (const [file, src] of files) {
-      try {
-        console.log(file);
-        if (!file.type.startsWith('image/')) continue;
-        const result = await reader.decodeFromImageUrl(src);
-        if (!result) continue;
-        console.log(result);
-        assert(result.format === 11);
-        assert(result.numBits === 272);
-        assert(result.rawBytes[0] === 0x42);
-        const fingerprint = Array.from(result.rawBytes, b=>b.toString(16).padStart(2,0)).join('').slice(3, -1);
-        assert(RE_FINGERPRINT.test(fingerprint));
-        host.setUFrag(fingerprint);
-      } catch(err) {
-        host_ui.logError(err);
-      }
-    }
-  }));
+  window.ZXing && cleanup(host_ui.uploadQR());
 
   return cleanup;
 }
@@ -106,11 +87,23 @@ Object.assign(host_ui, {
   },
 
 
+  onQR(result) {
+    console.log(result);
+    assert(result.format === 11);
+    assert(result.numBits === 272);
+    assert(result.rawBytes[0] === 0x42);
+    const fingerprint = Array.from(result.rawBytes, b=>b.toString(16).padStart(2,0)).join('').slice(3, -1);
+    assert(RE_FINGERPRINT.test(fingerprint));
+    host.setUFrag(fingerprint);
+  },
+
   async scanQR(cb) {
     if (!window.ZXing?.BrowserQRCodeReader) return;
     if (!window.isSecureContext) return;
 
-    if (!cb) cb = fingerprint => host.setUFrag(fingerprint);
+    if (!cb) cb = async result => {await host_ui.onQR(result); cancel()};
+
+    const cancel = () => {select.value = selectedDeviceId = noDevice; restart()};
 
     // decode every second
     const codeReader = new window.ZXing.BrowserQRCodeReader(undefined, 1000);
@@ -136,7 +129,7 @@ Object.assign(host_ui, {
       // console.log(video, video.parentElement, video.getRootNode(), [...videoParent.children]);
       // console.log(selectedDeviceId);
       // .getSettings().facingMode
-      codeReader.decodeFromInputVideoDeviceContinuously(selectedDeviceId, video, (result, err) => {
+      codeReader.decodeFromInputVideoDeviceContinuously(selectedDeviceId, video, async (result, err) => {
         if (!video || !video.parentElement || video.getRootNode() !== document) {
           console.log("Video removed, stopping QR scanning", err?.constructor.kind);
           codeReader.reset();
@@ -144,13 +137,11 @@ Object.assign(host_ui, {
           // console.log(video, video && { parentElement: video.parentElement, rootNode: video.getRootNode() });
         }
         if (!result) return;
-        console.log(result);
-        assert(result.format === 11);
-        assert(result.numBits === 272);
-        assert(result.rawBytes[0] === 0x42);
-        const fingerprint = Array.from(result.rawBytes, b=>b.toString(16).padStart(2,0)).join('').slice(3, -1);
-        assert(RE_FINGERPRINT.test(fingerprint));
-        cb(fingerprint);
+        try {
+          await cb(result);
+        } catch(err) {
+          host_ui.logError(err);
+        }
         codeReader.reset();
       });
       console.log("Starting QR scanning with device ID", selectedDeviceId);
@@ -175,7 +166,25 @@ Object.assign(host_ui, {
     );
     div.appendChild(select);
     restart();
-    host_ui.cleanup(div, () => {selectedDeviceId = noDevice; restart()});
+    host_ui.cleanup(div, cancel);
     return div;
+  },
+
+  uploadQR(cb) {
+    if (!cb) cb = result => host_ui.onQR(result);
+    return listenForUploads(async files => {
+      const reader = new window.ZXing.BrowserQRCodeReader();
+      for (const [file, src] of files) {
+        try {
+          console.log(file);
+          if (!file.type.startsWith('image/')) continue;
+          const result = await reader.decodeFromImageUrl(src);
+          if (!result) continue;
+          await cb(result);
+        } catch(err) {
+          host_ui.logError(err);
+        }
+      }
+    })
   },
 });
